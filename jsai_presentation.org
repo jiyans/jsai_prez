@@ -154,12 +154,12 @@ log of the price in 10000 Yen units.
  - NN Factor is is the output of the NN based on the floorplans seen.
  - Model estimated on data as a whole
 #+END_NOTES
-
 #+ATTR_HTML: :height 500px
 #+CAPTION: Regression table of the 3 estimated models (categorical features omitted).
 [[./assets/model_table.jpg]]
 
 *** Performance
+
 #+NAME: tab:regression
 #+LABEL: tab:regression
 #+CAPTION: \( R^2 \) and sample size for the three models obtained on different parts of the dataset.
@@ -167,8 +167,8 @@ log of the price in 10000 Yen units.
 |--------------------------------------+---------+---------+--------|
 |                                      |   total |   train |   test |
 |--------------------------------------+---------+---------+--------|
-| Model 1:  \( R^{2} \) MLR Without NN |   0.915 |   0.915 |  0.914 |
-| Model 2: \( R^{2} \) MLR With NN     |   0.945 |   0.951 |  0.923 |
+| Model 1:  \( R^{2} \) MLR Without NN |   0.915 |   0.915 |  *0.914* |
+| Model 2: \( R^{2} \) MLR With NN     |   0.945 |   0.951 |  *0.923* |
 | Model 3: \( R^{2} \) LR NN only      |   0.897 |   0.917 |  0.817 |
 | N                                    | 141,394 | 113,116 | 28,278 |
 |--------------------------------------+---------+---------+--------|
@@ -187,8 +187,6 @@ log of the price in 10000 Yen units.
  - The model probably picked up on the repetitive nature of these floorplans
  - thus knows to predict these apartments to have lower rents
  - The middle 2 pics are actually the same, but predictions are different ( Due to random cropping )
-
-
 #+END_NOTES
 
 #+CAPTION: The four predictions the model predicted the lowest rent for. (in 10,000¥)
@@ -204,7 +202,6 @@ log of the price in 10000 Yen units.
 
 #+CAPTION: The floorplans of four apartments with very highest predicted rents. (in 10,000¥)
 [[./assets/rand_top_100.png]]
-
 
 * Limitations
 #+ATTR_REVEAL: :frag (roll-in)
@@ -224,49 +221,3 @@ log of the price in 10000 Yen units.
 :CUSTOM_ID:bibliography
 :END:
 #+print_bibliography:
-# * Appendix
-# **** Largest decreases in Regression prediction after including NN output
-# #+CAPTION: Floorplans of apartments with the biggest decreases in predicted rent due to NN output (in 10,000¥)
-# [[./assets/overpreds.png]]
-
-# **** Largest increases
-# #+CAPTION: Floorplans of apartments with the biggest increases in predicted rent due to NN output (in 10,000¥)
-# [[./assets/underpreds.png]]
-
-# *** Preprocessing of Images
-# #+BEGIN_NOTES
-#  - We chose 224x224 because many image models use this size, we found that using bigger pictures gave better results
-#  - Cropping out of the image is done randomly as a augmentation technique
-#  - Image rotations were done at 90, 180, 270, 0 degree angles
-#  - We did not mirror the floorplans on purpose, as that would change the floorplans fundamentally ( Doors open the wrong ways, the compass shows the wrong direction )
-# #+END_NOTES
-
-#  - Normalization of images with normalization statistics of pretrained model
-#  - 2 augmentations
-#    - Randomly rotating the images
-#    - randomly cropping out a 224x224 square of the image
-#    - We did not mirror the floorplans on purpose, as that would change the floorplans fundamentally
-
-# *** Resizing Methods
-# #+BEGIN_NOTES
-# In this picture we can see two other resizing techniques often used
-#  - Distortion
-#  - Center cropping
-#  - Distorting is bad because it distorts the proportions of the floor plan, making it another floorplan all together
-#  - Center cropping is bad because we might crop off important parts of the image
-# #+END_NOTES
-
-# #+CAPTION: Showcasing different resizing methods
-# [[file:./assets/resizes.jpg]]
-# ** Cuts
-#  - [X] Cut 3:00-3:20
-#  - [X] Cut 4:55-5:05
-#  - [X] Cut 8:21 - 8:26
-#  - [X] At about 8:30 cut the silence around "That"
-#  - [X] Around 9:45, fix the start
-#  - [X] Cut at 11:33-11:43
-#  - Maybe retake the "Limitations" after ~13:05
-#  - Also retake 13:40
-#  - Cut after 14:50
-# *** From the "limitations" video
-#  - use 01:57~02:30

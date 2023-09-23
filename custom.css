@@ -18,7 +18,9 @@
 
 .csl-bib-body {
   font-size: 18px;
+  text-align: left;
 }
+
 .twocolumn {
   display: grid;
   grid-template-columns: 1fr 1fr;

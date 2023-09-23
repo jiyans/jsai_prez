@@ -1,0 +1,343 @@
+#+title: Incremental informational value of floorplans for rent price prediction
+#+SUBTITLE:  家賃予測における間取り図の情報価値の増加
+#+Bibliography: local-bib.bib
+#+BEAMER_FRAME_LEVEL: 2
+#+OPTIONS: H:4 toc:nil num:nil
+#+EMAIL:     jiyan.schneider@keio.jp
+#+AUTHOR: Jiyan Schneider* and Takahiro Hoshino*
+#+OPTIONS: reveal_history:t reveal_fragmentinurl:t
+
+:REVEAL_PROPERTIES:
+#+REVEAL_TITLE_SLIDE: <h1>%t</h1><br><h2>%s</h2><br><h4>%a</h4><br>*Keio University, Graduate school of Economics <br> *RIKEN AIP
+#+REVEAL_ROOT: ./reveal.js/
+#+REVEAL_EXTRA_CSS: custom.css
+#+REVEAL_THEME: serif
+#+REVEAL_TRANS: linear
+#+REVEAL_HLEVEL: 1
+:END:
+* Introduction
+#+BEGIN_NOTES
+ - 研究の仮定
+   - 間取り画像には消費者の嗜好に関する情報が含まれているので、予測に役立つはずである。
+ - こちらを調べる理由
+   - 予測精度が上がると、物件の相場をよりよくわかることができ、例えば比較的安い物件を見つけられる
+   - 間取り図には消費者嗜好を表してて、普通のテーブルデータでは捕えてないものが入ってることを証明できる
+   - 間取り図を賃貸物件予測に使えないという結果の論文も出てるから喧嘩できる
+ - 結果から言うと NN を慎重に 作れば、間取り図を使用することができ、予測精度を上げることができる。
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (roll-in)
+Hypothesis: floor plan images contain information about consumer preferences, so they should help with predictions
+#+ATTR_REVEAL: :frag (roll-in)
+Why look into this?
+#+ATTR_REVEAL: :frag (roll-in)
+  - understanding of the market prices
+  - understanding of consumer preferences
+  - floorplans are not used in rent price prediction, and there are papers saying that they are not useful
+
+*** Price structure of real estate
+#+BEGIN_NOTES
+ - 不動産の価格は、環境的な要素と構造的な要素に分けられる
+ - 環境的な要素は、比較的簡単に取得できるが
+ - 構造的な要素は、比較的取得が難しい
+ - 消費者は、構造的な要素を重視する
+ - 構造的な要素は、だいたい間取り図に含まれていると考えられる
+ - なので間取り図を使うと予測精度が上がるはず
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (roll-in)
+ - Factors making up real estate price can be divided into two categories
+#+begin_export html
+<br>
+#+end_export
+#+ATTR_REVEAL: :frag (roll-in)
+| Structural (構造的要素)       | Environmental (環境的要素)  |
+|-------------------------------+-----------------------------|
+| Apartment size                | Name of Closest station     |
+| Floor of apartment            | No. of supermarkets         |
+| Material used in construction | Distance to the city center |
+| Floor layout                  | No. of schools              |
+| Kitchen Space                 | No. of Parks                |
+| Interior design and finish    |                             |
+#+begin_export html
+<br>
+#+end_export
+
+#+ATTR_REVEAL: :frag (roll-in)
+ - Consumers tend to value structural factors more than environmental ones [cite:@choi2003;@akiyamayuki2019230204]
+
+*** Machine Learning in real estate
+#+BEGIN_NOTES
+ - [cite:@hattori2019rent] use PCA to extract feature vectors from floorplans
+   - They use it in various models
+   - While they note slight improvements, they say that it is challenging to find merits for their improvements, because they are too small
+ - [cite:@limsombunchai2004]
+   - In this paper the authors argue for the usage of NN's in real-estate price prediction despite the hardships of their interpretation, simply due to their predictive power
+   - They are using tabular data
+ - At the time of writing the paper we are not aware of any research using a Neural Netowrk trained with floor plan images for rental price predictions
+#+END_NOTES
+#+ATTR_REVEAL: :frag (roll-in)
+ - Earliest example we could find of research being done using NN's for rent price prediction is from 2004 [cite:@limsombunchai2004]
+ - [cite/text/c:@hattori2019rent]  use Principal Component Analysis to extract feature vectors of floorplan data
+      #+begin_quote
+[H]owever, the differences are not significant and it is difficult to find merits to use FPIs for rent prediction model. - [cite/text/cf:@hattori2019rent]
+      #+end_quote
+ - [cite/text/cf:@zeng2019deep] use Computer Vision techniques for floorplans, to try detect the functionalities of the rooms
+ - We have also found research using Computer Vision techniques for price estimation using photos of the interior and exteriors [cite:@poursaeed2018]
+
+* Methodology
+** Data
+#+BEGIN_NOTES
+ - 不動産物件の表データと画像データのスナップショット (2021 年 12 月)
+ - 140,000 件、3つのカテゴリー変数と 7 つの連続特徴
+ - 複数のマーケットに対応する必要がないよう、オブザベーションを首都圏に限定
+#+END_NOTES
+ - Snapshot of tabular and image data of real estate properties
+ - 140,000 observations, 3 categorical and 7 continuous features
+ - Only include properties from the Tokyo Metropolitan area
+ - Limit observations to Tokyo Metropolitan area to avoid having to deal with multiple markets
+
+*** Floorplan example
+#+BEGIN_NOTES
+ - 物件の家賃の対数と、間取り図の例
+#+END_NOTES
+
+#+CAPTION: An example of randomly chosen floorplans and the log of their rent prices. (rent price denoted in 10000 Yen units.)
+[[./assets/rand_imgs.png]]
+
+*** Tabular data
+#+BEGIN_NOTES
+    - 3 categorical variables
+    - 7 continuous variables
+#+END_NOTES
+
+#+NAME: tab:var_explanation
+#+ATTR_LATEX: :name tab:var_explanation :label tab:var_explanation
+|--------------------+-----------------------------------------------------------------|
+| Variable           | Explanation                                                     |
+|--------------------+-----------------------------------------------------------------|
+| apt_rent           | Rent per month of the listing. In units of 10000 Yen            |
+|--------------------+-----------------------------------------------------------------|
+|--------------------+-----------------------------------------------------------------|
+| Apt. Floor         | The floor the property is on                                    |
+| Size in \(m^{2}\)  | Size of property in $m^2$                                       |
+| No Floors bldg     | No of floors of the building                                    |
+| Age bldg.          | No. of years ago the property was built                         |
+| Style              | Description of the layout type of the apartment (1K, 1LDK,... ) |
+| Admin fee  10,000¥ | Amount of monthly administration fee                            |
+| Station            | Name of the closest public transport station                    |
+| Method             | How "Time to station" is measured (foot, bus, or car)           |
+| Time to station    | No. minutes of taking "method" to the next station              |
+|--------------------+-----------------------------------------------------------------|
+
+** Neural Network
+#+BEGIN_NOTES
+Main talking points:
+ - Resnet50 使用
+ - 最先端ではないが、よく研究されたモデルで、誰でも実装できる
+ - あとは NN の詳細お説明で、永遠に話せるので、ここでは省略
+
+If someone asks:
+ - モデルが収束するためには、最終層のスケーリングが重要である。
+ - モデルが高すぎる予測値を出してしまう→勾配が大きくなる→重みの調整が大きすぎる→モデルが発散する
+ - 最後の層の出力をスケーリングするだけでも十分だが、この y レンジで新しいハイパーパラメータができてしまう
+ - 多くのモデルがこのサイズを使用しているため、Resnet50 を使用したが、Resnet152 など、より大きなモデルを使用した方が良い結果が得られることがわかった。
+ - 新しいモデルよりも Resnet50 を選んだのは、よく研究されたモデルだからである。
+ - あらかじめ決められた範囲は、データの下限と上限の整数です。
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (roll-in)
+ - Used a ~Resnet50~ architecture [cite:@he15:deep_resid_learn_image_recog]
+ - Weights were initialized to pretrained weights available from ~torchvision~ [cite:@NEURIPS2019_9015]
+ - Randomly initialized fully connected layers at the end of the usual ~Resnet50~ model
+ - added a sigmoid "layer" to scale the outputs of the last layer into a predetermined range
+*** Training
+ - When training the Neural network we split the data into a train and test set.
+ - The above splits were performed on the building level (as opposed to the apartment level)
+ - This was done to make sure that the NN doesn't simply remember the style of floorplans of certain buildings
+ - We fine-tuned the model as follows:
+   - First we froze pretrained layers, trained for a 5 epochs (~1h per epoch)
+   - Afterwards, unfroze them and trained the whole model for 10 epochs (~1h:30 per epoch)
+ - The sigmoid layer was essential for the convergence of the model
+
+** Augmentations
+#+ATTR_LATEX:
+#+CAPTION: This figure showcases the properties of each resizing method. The first and second rows compare nine floorplans. The third shows different crops of the leftmost floorplan.
+[[./assets/resizes.jpg]]
+** Regression
+#+BEGIN_NOTES
+Make cool picture showing the complete model
+floorplan -> NN -> Prediction + table data -> regression
+
+間取り図を NN で処理、予測を出す
+その予測を一つの特徴として、家賃予測のための回帰を行う
+#+END_NOTES
+
+IMAGE TO COME
+
+* Results
+#+BEGIN_NOTES
+ - 結果の方にいきます
+ - まずは定量的な結果
+ - その後に定性的な結果
+#+END_NOTES
+** Quantitative
+*** Models
+#+BEGIN_NOTES
+ - NN Factor は、間取り図をベースに NN の予測結果である。
+ - この表も省略してしまいます
+#+END_NOTES
+
+#+ATTR_HTML: :height 500px
+#+CAPTION: Regression table of the 3 estimated models (categorical features omitted).
+[[./assets/model_table.jpg]]
+
+*** Performance
+#+BEGIN_NOTES
+ - TODO put in Yen Stuff here
+ - test データセットでの精度、いい感じに上がりました
+#+END_NOTES
+
+#+NAME: tab:regression
+#+LABEL: tab:regression
+#+CAPTION: \( R^2 \) and sample size for the three models obtained on different parts of the dataset.
+#+ATTR_LATEX: :label tab:regression :name tab:regression
+|--------------------------------------+---------+---------+--------|
+|                                      |   total |   train |   test |
+|--------------------------------------+---------+---------+--------|
+| Model 1:  \( R^{2} \) MLR Without NN |   0.915 |   0.915 |  0.914 |
+| Model 2: \( R^{2} \) MLR With NN     |   0.945 |   0.951 |  0.923 |
+| Model 3: \( R^{2} \) LR NN only      |   0.897 |   0.917 |  0.817 |
+| N                                    | 141,394 | 113,116 | 28,278 |
+|--------------------------------------+---------+---------+--------|
+
+ - We can see an improvement on the total dataset  \( R^2: 0.915 \rightarrow 0.945 \)
+ - test data improvement is smaller \( R^2: 0.914 \rightarrow 0.923 \)
+
+   Reduction of error of ≈26%
+    438,130,000−321,310,000=116,820,000
+*** Performance
+#+BEGIN_NOTES
+予測のエラーを 26％ 減らすことができた
+ - 438,130,000−321,310,000=116,820,000
+ - 毎月 116,820,000 円の改善
+#+END_NOTES
+
+#+NAME: tab:error_reduction
+#+LABEL: tab:error_reduction
+#+CAPTION: Reduction of error in predictions on test set. \( (N=28,278) \)
+#+ATTR_LATEX: :label tab:regression :name tab:regression
+| Model              | Total Error (10,000 Yen) | MAE (10,000 Yen) |
+|--------------------+--------------------------+------------------|
+| Model 1 (Baseline) |                    43813 |           1.5493 |
+| Model 2 (w/ NN)    |                    32131 |           1.1362 |
+
+Reduction of error of \( \approx 26\% \).
+ - \( 438,130,000 - 321,310,000  = 116,820,000 \)
+ - \( 116,820,000 \) Yen improvement in prediction
+** Qualitative
+#+BEGIN_NOTES
+ - ランダムで抽出したサンプルの予測値と実際の値を見てみる
+#+END_NOTES
+
+*** Randomly Extracted sample
+#+CAPTION: NN predictions and ground truths for a randomly extracted sample of the dataset. (in 10,000¥)
+[[./assets/random_table.png]]
+
+*** Lowest predictions of the neural net
+#+BEGIN_NOTES
+ - もう少し極端な例をみてみましょう
+ - 最も賃料が低いと予想された 4 つのアパートの間取り。(単位：万円）
+ - 最も低い予測値は、すべて寮の部屋
+ - モデルはおそらく、これらの間取りが反復的な性質を持つことに着目したのだろう。
+ - そのため、これらのアパートは家賃が低いと予測することができる。
+ - 真ん中の 2 枚の写真は同じものだが、予測値が異なっている。 -> 前処理が原因
+#+END_NOTES
+
+#+CAPTION: The four predictions the model predicted the lowest rent for. (in 10,000¥)
+[[./assets/rand_neg_top_100.png]]
+
+*** Highest predictions of the neural net
+#+BEGIN_NOTES
+ - 最も賃料が高いと予想された 4 つのアパートの間取り。(単位：万円）
+ - ニューラルネットの最高予測値
+ - 最上階には複数のベッドルームがある
+ - 複数階
+ - 複雑な間取り
+ - 過大予測の大きさはかなり高い
+#+END_NOTES
+
+
+#+CAPTION: The floorplans of four apartments with very highest predicted rents. (in 10,000¥)
+[[./assets/rand_top_100.png]]
+
+
+*** Plot of residual
+#+BEGIN_NOTES
+
+#+END_NOTES
+
+#+ATTR_HTML:
+#+CAPTION: The floorplans of four apartments with very highest predicted rents. (in 10,000¥)
+[[./assets/residual_plot.png]]
+
+* Limitations
+#+BEGIN_NOTES
+ - 研究の限界
+ - より多くの変数が利用可能になれば、われわれが見ている予測の改善は減少するかもしれない。
+ - 最先端あるいはより大きなモデルを使用することで、改善される可能性がある。
+ - 現在のところ、一つの市場のみを対象としている
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (roll-in)
+ - Improvements we are seeing might be reduced when more variables are available
+ - Using more recent or bigger models, might lead to improvements
+ - Currently we are only considering a single market
+* Next steps
+#+BEGIN_NOTES
+ NN の予測性能を犠牲にすることなく、複数の市場をモデルに組み込む方法を見つける。
+#+END_NOTES
+
+ - *Find a way to incorporate mulitple markets into our model, while not giving up predictive performance of NN*
+
+* Bibliography
+:PROPERTIES:
+:CUSTOM_ID: bibliography
+:END:
+#+CITE_EXPORT: csl chicago-author-date-without-url.csl
+#+print_bibliography:
+
+* Appendix
+** Largest decreases in Regression prediction after including NN output
+#+CAPTION: Floorplans of apartments with the biggest decreases in predicted rent due to NN output (in 10,000¥)
+[[./assets/overpreds.png]]
+
+** Largest increases
+#+CAPTION: Floorplans of apartments with the biggest increases in predicted rent due to NN output (in 10,000¥)
+[[./assets/underpreds.png]]
+
+** Preprocessing of Images
+#+BEGIN_NOTES
+ - We chose 224x224 because many image models use this size, we found that using bigger pictures gave better results
+ - Cropping out of the image is done randomly as a augmentation technique
+ - Image rotations were done at 90, 180, 270, 0 degree angles
+ - We did not mirror the floorplans on purpose, as that would change the floorplans fundamentally ( Doors open the wrong ways, the compass shows the wrong direction )
+#+END_NOTES
+
+ - Normalization of images with normalization statistics of pretrained model
+ - 2 augmentations
+   - Randomly rotating the images
+   - randomly cropping out a 224x224 square of the image
+   - We did not mirror the floorplans on purpose, as that would change the floorplans fundamentally
+
+** Resizing Methods
+#+BEGIN_NOTES
+In this picture we can see two other resizing techniques often used
+ - Distortion
+ - Center cropping
+ - Distorting is bad because it distorts the proportions of the floor plan, making it another floorplan all together
+ - Center cropping is bad because we might crop off important parts of the image
+#+END_NOTES
+
+#+CAPTION: Showcasing different resizing methods
+[[file:./assets/resizes.jpg]]
